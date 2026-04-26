@@ -111,7 +111,7 @@ No. Once Chrome is open and your photos are loaded, everything runs locally on y
 
 | File | Purpose |
 |---|---|
-| `easy_photo_slideshow.html` | The slideshow — this is the only file you need |
+| `easiset_photo_slideshow.html` | The slideshow — this is the only file you need |
 | `README.md` | This guide |
 
 ---
