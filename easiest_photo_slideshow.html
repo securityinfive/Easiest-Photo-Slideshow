@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Easiest Photo Slideshow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    cursor: none;
+    color: #fff;
+  }
+
+  #stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  .photo-tile {
+    position: absolute;
+    overflow: hidden;
+    border-radius: 4px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+    background: #111;
+  }
+
+  .photo-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    background: #111;
+  }
+
+  #loader {
+    position: fixed;
+    inset: 0;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-y: auto;
+    z-index: 999;
+    padding: 44px 20px 60px;
+    cursor: default;
+  }
+
+  #loader h1 {
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    color: #fff;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  .subtitle {
+    font-size: 0.75rem;
+    color: #3a3a3a;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    max-width: 740px;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: #131313;
+    border: 1px solid #1e1e1e;
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+
+  .card-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #444;
+    margin-bottom: 14px;
+  }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .stepper button {
+    width: 34px;
+    height: 34px;
+    background: #1c1c1c;
+    border: 1px solid #282828;
+    color: #888;
+    font-size: 1.1rem;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.12s, color 0.12s;
+    line-height: 1;
+  }
+
+  .stepper button:hover { background: #252525; color: #fff; }
+
+  .stepper-val {
+    width: 48px;
+    text-align: center;
+    font-size: 1.7rem;
+    font-weight: 200;
+    color: #fff;
+  }
+
+  .dim-label {
+    font-size: 0.72rem;
+    color: #3a3a3a;
+    margin-top: 2px;
+  }
+
+  .speed-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .speed-row input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 3px;
+    background: #252525;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .speed-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .speed-val {
+    font-size: 1.05rem;
+    font-weight: 300;
+    color: #fff;
+    min-width: 38px;
+    text-align: right;
+  }
+
+  .speed-ends {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    color: #3a3a3a;
+  }
+
+  .check-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 5px 7px;
+    border-radius: 5px;
+    transition: background 0.1s;
+  }
+
+  .check-row:hover { background: #1a1a1a; }
+
+  .check-row input[type=checkbox] {
+    width: 14px;
+    height: 14px;
+    accent-color: #ccc;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .check-row span {
+    font-size: 0.83rem;
+    color: #666;
+    user-select: none;
+    transition: color 0.1s;
+  }
+
+  .check-row input:checked + span { color: #ccc; }
+
+  .select-all-btn {
+    font-size: 0.65rem;
+    color: #333;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 0 10px 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    display: block;
+  }
+
+  .select-all-btn:hover { color: #666; }
+
+  .launch-wrap {
+    max-width: 740px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  #file-btn {
+    padding: 14px;
+    background: #fff;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: background 0.15s;
+  }
+
+  #file-btn:hover { background: #ddd; }
+  #file-input { display: none; }
+
+  #status {
+    font-size: 0.78rem;
+    color: #444;
+    min-height: 1.2em;
+    text-align: center;
+  }
+
+  #hint {
+    position: fixed;
+    bottom: 18px;
+    right: 22px;
+    color: #2a2a2a;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  #hint.visible { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <h1>Graduation Slideshow</h1>
+  <div class="subtitle">Set your preferences, then choose your photo folder</div>
+
+  <div class="settings-grid">
+
+    <!-- Max photos per screen -->
+    <div class="card">
+      <div class="card-title">Max photos per screen</div>
+      <div class="stepper">
+        <button id="dec-btn">−</button>
+        <div class="stepper-val" id="max-val">6</div>
+        <button id="inc-btn">+</button>
+      </div>
+      <div class="dim-label">1 – 6 photos shown at once</div>
+    </div>
+
+    <!-- Speed -->
+    <div class="card">
+      <div class="card-title">Slide speed</div>
+      <div class="speed-row">
+        <input type="range" id="speed-slider" min="3" max="20" value="6" step="1">
+        <div class="speed-val" id="speed-val">6s</div>
+      </div>
+      <div class="speed-ends"><span>3 sec</span><span>20 sec</span></div>
+    </div>
+
+    <!-- Grid styles -->
+    <div class="card">
+      <div class="card-title">Grid styles</div>
+      <button class="select-all-btn" id="layouts-all-btn">deselect all</button>
+      <div class="check-group" id="layouts-group">
+        <label class="check-row"><input type="checkbox" value="mosaic" checked><span>Mosaic grid</span></label>
+        <label class="check-row"><input type="checkbox" value="bigAndSmall" checked><span>Big + small</span></label>
+        <label class="check-row"><input type="checkbox" value="stackedColumns" checked><span>Stacked columns</span></label>
+        <label class="check-row"><input type="checkbox" value="asymmetric" checked><span>Asymmetric rows</span></label>
+        <label class="check-row"><input type="checkbox" value="singleHero" checked><span>Single full screen</span></label>
+        <label class="check-row"><input type="checkbox" value="tripleStrip" checked><span>Triple strip</span></label>
+      </div>
+    </div>
+
+    <!-- Transitions -->
+    <div class="card">
+      <div class="card-title">Transitions</div>
+      <button class="select-all-btn" id="transitions-all-btn">deselect all</button>
+      <div class="check-group" id="transitions-group">
+        <label class="check-row"><input type="checkbox" value="fade" checked><span>Fade</span></label>
+        <label class="check-row"><input type="checkbox" value="slideLeft" checked><span>Slide left</span></label>
+        <label class="check-row"><input type="checkbox" value="slideRight" checked><span>Slide right</span></label>
+        <label class="check-row"><input type="checkbox" value="slideUp" checked><span>Slide up</span></label>
+        <label class="check-row"><input type="checkbox" value="slideDown" checked><span>Slide down</span></label>
+        <label class="check-row"><input type="checkbox" value="zoomIn" checked><span>Zoom in</span></label>
+        <label class="check-row"><input type="checkbox" value="zoomOut" checked><span>Zoom out</span></label>
+        <label class="check-row"><input type="checkbox" value="flipH" checked><span>Flip</span></label>
+        <label class="check-row"><input type="checkbox" value="dissolve" checked><span>Dissolve</span></label>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="launch-wrap">
+    <button id="file-btn" onclick="document.getElementById('file-input').click()">Choose Photo Folder &amp; Start</button>
+    <input type="file" id="file-input" multiple accept="image/*" webkitdirectory>
+    <div id="status"></div>
+  </div>
+</div>
+
+<div id="stage"></div>
+<div id="hint">F11 fullscreen &nbsp;|&nbsp; space pause &nbsp;|&nbsp; → next</div>
+
+<script>
+const TRANSITION_DURATION = 900;
+
+let photos = [];
+let slides = [];
+let timer = null;
+let paused = false;
+let maxPhotos = 6;
+let slideDuration = 6000;
+let activeLayouts = [];
+let activeTransitions = [];
+
+const stage = document.getElementById('stage');
+const loader = document.getElementById('loader');
+const statusEl = document.getElementById('status');
+const hint = document.getElementById('hint');
+
+// stepper
+const maxValEl = document.getElementById('max-val');
+document.getElementById('dec-btn').addEventListener('click', () => {
+  if (maxPhotos > 1) { maxPhotos--; maxValEl.textContent = maxPhotos; }
+});
+document.getElementById('inc-btn').addEventListener('click', () => {
+  if (maxPhotos < 6) { maxPhotos++; maxValEl.textContent = maxPhotos; }
+});
+
+// speed
+const speedSlider = document.getElementById('speed-slider');
+const speedValEl = document.getElementById('speed-val');
+speedSlider.addEventListener('input', () => {
+  slideDuration = parseInt(speedSlider.value) * 1000;
+  speedValEl.textContent = speedSlider.value + 's';
+});
+
+// select-all toggle helper
+function wireSelectAll(btnId, groupId) {
+  const btn = document.getElementById(btnId);
+  const group = document.getElementById(groupId);
+  function syncLabel() {
+    const all = Array.from(group.querySelectorAll('input')).every(b => b.checked);
+    btn.textContent = all ? 'deselect all' : 'select all';
+  }
+  btn.addEventListener('click', () => {
+    const boxes = group.querySelectorAll('input');
+    const all = Array.from(boxes).every(b => b.checked);
+    boxes.forEach(b => b.checked = !all);
+    syncLabel();
+  });
+  group.addEventListener('change', syncLabel);
+}
+wireSelectAll('layouts-all-btn', 'layouts-group');
+wireSelectAll('transitions-all-btn', 'transitions-group');
+
+function getChecked(groupId) {
+  return Array.from(document.querySelectorAll(`#${groupId} input:checked`)).map(b => b.value);
+}
+
+// file load
+document.getElementById('file-input').addEventListener('change', function(e) {
+  const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+  if (!files.length) { statusEl.textContent = 'No image files found.'; return; }
+
+  activeLayouts = getChecked('layouts-group');
+  activeTransitions = getChecked('transitions-group');
+  if (!activeLayouts.length) activeLayouts = ['mosaic'];
+  if (!activeTransitions.length) activeTransitions = ['fade'];
+
+  photos = [];
+  let loaded = 0;
+  statusEl.textContent = `Loading ${files.length} photos...`;
+
+  files.forEach(file => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      photos.push({ url });
+      loaded++;
+      statusEl.textContent = `Loading ${loaded} / ${files.length}...`;
+      if (loaded === files.length) startShow();
+    };
+    img.onerror = () => { loaded++; if (loaded === files.length) startShow(); };
+    img.src = url;
+  });
+});
+
+function startShow() {
+  if (!photos.length) { statusEl.textContent = 'Could not load photos.'; return; }
+  shuffle(photos);
+  loader.style.display = 'none';
+  showHint();
+  buildAndShow();
+  timer = setInterval(advance, slideDuration);
+}
+
+function showHint() {
+  hint.classList.add('visible');
+  setTimeout(() => hint.classList.remove('visible'), 4000);
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+function pick(arr, n) { const c = [...arr]; shuffle(c); return c.slice(0, Math.min(n, c.length)); }
+function rand(min, max) { return min + Math.random() * (max - min); }
+function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
+function randFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// layouts
+const LAYOUT_FNS = {
+  mosaic(count, vw, vh) {
+    const g = 6, tiles = [];
+    const cols = count <= 3 ? count : Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / cols);
+    const tw = (vw - g * (cols + 1)) / cols;
+    const th = (vh - g * (rows + 1)) / rows;
+    let i = 0;
+    for (let r = 0; r < rows && i < count; r++)
+      for (let c = 0; c < cols && i < count; c++, i++)
+        tiles.push({ x: g + c*(tw+g), y: g + r*(th+g), w: tw, h: th });
+    return tiles;
+  },
+  bigAndSmall(count, vw, vh) {
+    if (count < 2) return LAYOUT_FNS.mosaic(count, vw, vh);
+    const g = 6;
+    const bigW = vw * rand(0.55, 0.65);
+    const smallW = vw - bigW - g * 3;
+    const tiles = [{ x: g, y: g, w: bigW - g, h: vh - g*2 }];
+    const smallH = (vh - g * count) / (count - 1);
+    for (let i = 1; i < count; i++)
+      tiles.push({ x: bigW+g, y: g+(i-1)*(smallH+g), w: smallW, h: smallH });
+    return tiles;
+  },
+  stackedColumns(count, vw, vh) {
+    if (count < 2) return LAYOUT_FNS.mosaic(count, vw, vh);
+    const g = 6, tiles = [];
+    const cols = Math.min(count, 3);
+    const perCol = Math.ceil(count / cols);
+    const colW = (vw - g*(cols+1)) / cols;
+    let idx = 0;
+    for (let c = 0; c < cols && idx < count; c++) {
+      const inThis = Math.min(perCol, count - idx);
+      const rowH = (vh - g*(inThis+1)) / inThis;
+      for (let r = 0; r < inThis; r++, idx++)
+        tiles.push({ x: g+c*(colW+g), y: g+r*(rowH+g), w: colW, h: rowH });
+    }
+    return tiles;
+  },
+  asymmetric(count, vw, vh) {
+    if (count < 3) return LAYOUT_FNS.bigAndSmall(count, vw, vh);
+    count = Math.min(count, 5);
+    const g = 6;
+    const topH = vh * rand(0.45, 0.6);
+    const botH = vh - topH - g*3;
+    const topCount = Math.floor(count/2);
+    const botCount = count - topCount;
+    const tiles = [];
+    const topW = (vw - g*(topCount+1)) / topCount;
+    for (let i = 0; i < topCount; i++)
+      tiles.push({ x: g+i*(topW+g), y: g, w: topW, h: topH });
+    const botW = (vw - g*(botCount+1)) / botCount;
+    for (let i = 0; i < botCount; i++)
+      tiles.push({ x: g+i*(botW+g), y: topH+g*2, w: botW, h: botH });
+    return tiles;
+  },
+  singleHero(count, vw, vh) {
+    return [{ x: 0, y: 0, w: vw, h: vh }];
+  },
+  tripleStrip(count, vw, vh) {
+    count = Math.min(count, 3);
+    const g = 6, tiles = [];
+    const h = (vh - g*(count+1)) / count;
+    for (let i = 0; i < count; i++)
+      tiles.push({ x: g, y: g+i*(h+g), w: vw-g*2, h });
+    return tiles;
+  }
+};
+
+// transitions
+function applyOut(el, type, dur) {
+  el.style.transition = `opacity ${dur}ms, transform ${dur}ms`;
+  switch (type) {
+    case 'fade':       el.style.opacity='0'; break;
+    case 'slideLeft':  el.style.transform='translateX(-100%)'; el.style.opacity='0'; break;
+    case 'slideRight': el.style.transform='translateX(100%)';  el.style.opacity='0'; break;
+    case 'slideUp':    el.style.transform='translateY(-100%)'; el.style.opacity='0'; break;
+    case 'slideDown':  el.style.transform='translateY(100%)';  el.style.opacity='0'; break;
+    case 'zoomIn':     el.style.transform='scale(1.15)';       el.style.opacity='0'; break;
+    case 'zoomOut':    el.style.transform='scale(0.85)';       el.style.opacity='0'; break;
+    case 'flipH':      el.style.transform='rotateY(90deg)';    el.style.opacity='0'; break;
+    default:           el.style.opacity='0';
+  }
+}
+
+function applyIn(el, type, dur) {
+  switch (type) {
+    case 'slideLeft':  el.style.transform='translateX(100%)';  break;
+    case 'slideRight': el.style.transform='translateX(-100%)'; break;
+    case 'slideUp':    el.style.transform='translateY(100%)';  break;
+    case 'slideDown':  el.style.transform='translateY(-100%)'; break;
+    case 'zoomIn':     el.style.transform='scale(0.85)';       break;
+    case 'zoomOut':    el.style.transform='scale(1.15)';       break;
+    case 'flipH':      el.style.transform='rotateY(-90deg)';   break;
+    default: break;
+  }
+  el.style.opacity = '0';
+  requestAnimationFrame(() => {
+    el.style.transition = `opacity ${dur}ms, transform ${dur}ms`;
+    requestAnimationFrame(() => { el.style.opacity='1'; el.style.transform=''; });
+  });
+}
+
+function buildSlide() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const count = randInt(1, Math.min(maxPhotos, photos.length));
+  const layoutFn = LAYOUT_FNS[randFrom(activeLayouts)] || LAYOUT_FNS.mosaic;
+  const tiles = layoutFn(count, vw, vh);
+  const chosen = pick(photos, tiles.length);
+  const slide = document.createElement('div');
+  slide.className = 'slide';
+  chosen.forEach((photo, i) => {
+    const tile = tiles[i];
+    const div = document.createElement('div');
+    div.className = 'photo-tile';
+    div.style.cssText = `left:${tile.x}px;top:${tile.y}px;width:${tile.w}px;height:${tile.h}px`;
+    const img = document.createElement('img');
+    img.src = photo.url;
+    div.appendChild(img);
+    slide.appendChild(div);
+  });
+  return slide;
+}
+
+function buildAndShow() {
+  const slide = buildSlide();
+  stage.appendChild(slide);
+  slides.push(slide);
+  if (slides.length === 1) { slide.classList.add('active'); slide.style.opacity='1'; }
+  if (slides.length > 4) { const old = slides.shift(); old.remove(); }
+}
+
+function advance() {
+  if (paused) return;
+  const outSlide = slides[slides.length - 1];
+  const transition = randFrom(activeTransitions);
+  buildAndShow();
+  const inSlide = slides[slides.length - 1];
+  applyIn(inSlide, transition, TRANSITION_DURATION);
+  inSlide.classList.add('active');
+  applyOut(outSlide, transition, TRANSITION_DURATION);
+  setTimeout(() => { outSlide.classList.remove('active'); outSlide.style.opacity='0'; }, TRANSITION_DURATION);
+}
+
+document.addEventListener('keydown', e => {
+  if (!photos.length) return;
+  if (e.key === ' ') {
+    paused = !paused;
+    hint.classList.add('visible');
+    hint.textContent = paused ? 'paused — space to resume' : 'F11 fullscreen  |  space pause  |  → next';
+    if (!paused) setTimeout(() => hint.classList.remove('visible'), 3000);
+  }
+  if (e.key === 'ArrowRight') { clearInterval(timer); advance(); timer = setInterval(advance, slideDuration); }
+  if (e.key === 'Escape') { hint.classList.add('visible'); setTimeout(() => hint.classList.remove('visible'), 3000); }
+});
+
+window.addEventListener('resize', () => {
+  slides.forEach(s => s.remove());
+  slides.length = 0;
+  buildAndShow();
+});
+</script>
+</body>
+</html>
